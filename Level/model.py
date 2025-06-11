@@ -3,7 +3,7 @@ import torch.nn as nn
 import math
 
 class EncoderOnlyClassifier(nn.Module):
-    def __init__(self, d_model=6, n_enc = 6,nhead = 8, dim_ff=2048, max_len=500):
+    def __init__(self, d_model=6, n_enc = 6,nhead = 8, dim_ff=2048):
         super().__init__()
         # 初始化 Transformer 模型
         self.input_proj = nn.Linear(d_model, 64)
@@ -17,11 +17,11 @@ class EncoderOnlyClassifier(nn.Module):
         self.classifier = nn.Linear(64, 11)
 
     def forward(self, src):
-        # src, tgt: (seq_len, batch_size, d_model)
+        # src: (seq_len, batch_size, d_model)
         # 把最後一個維度從 in_dim=6 -> proj_dim=64
         x = self.input_proj(src)    # -> (seq_len, batch_size, 64)
         memory = self.encoder(x) 
         # Use the last time-step from decoder output
         last = memory[-1]   # shape: (batch_size, d_model)
-        logits = self.classifier(last)  # shape: (batch_size, 9)
+        logits = self.classifier(last)  # shape: (batch_size, 11)
         return logits
