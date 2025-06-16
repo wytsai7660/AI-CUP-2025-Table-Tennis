@@ -1,0 +1,17 @@
+# Gender 執行說明
+
+要復現 `gender.csv` 中的結果，請使用以下命令：
+
+```bash
+bash make_prediction.sh
+```
+
+腳本會自動下載訓練完成的模型並進行預測。預測結果將輸出到 `gender.csv` 檔案中。
+
+如要自行訓練模型，請使用以下命令：
+
+```bash
+bash make_prediction.sh
+python train.py
+python finetune.py
+```
