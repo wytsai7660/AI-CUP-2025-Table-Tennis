@@ -5,7 +5,6 @@ import math
 import csv
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from sklearn.metrics import roc_auc_score
 
@@ -191,14 +190,11 @@ def feature(input_data, swinging_now, swinging_times, n_fft, a_fft, g_fft, a_fft
     output = mean + var + rms + a_max + a_mean + a_min + g_max + g_mean + g_min + [a_fft_mean] + [g_fft_mean] + [a_psd_mean] + [g_psd_mean] + a_kurtosis + g_kurtosis + a_skewness + g_skewness + [a_entropy_mean] + [g_entropy_mean]
     writer.writerow(output)
 
-def data_generate():
-    datapath = 'data/test'
-    tar_dir = 'data/tabular_data_test'
-    pathlist_txt = Path(datapath).glob('**/*.txt')
+def data_generate(datapath='./39_Training_Dataset', tar_dir='tabular_data_train'):
+    pathlist_txt = Path(datapath).glob('*.txt')
 
     
     for file in pathlist_txt:
-        # print(file)
         f = open(file)
 
         All_data = []
@@ -224,7 +220,7 @@ def data_generate():
         headerList = ['ax_mean', 'ay_mean', 'az_mean', 'gx_mean', 'gy_mean', 'gz_mean', 'ax_var', 'ay_var', 'az_var', 'gx_var', 'gy_var', 'gz_var', 'ax_rms', 'ay_rms', 'az_rms', 'gx_rms', 'gy_rms', 'gz_rms', 'a_max', 'a_mean', 'a_min', 'g_max', 'g_mean', 'g_min', 'a_fft', 'g_fft', 'a_psd', 'g_psd', 'a_kurt', 'g_kurt', 'a_skewn', 'g_skewn', 'a_entropy', 'g_entropy']                
         
 
-        with open('{dir}/{fname}.csv'.format(dir = tar_dir, fname = Path(file).stem), 'w', newline = '') as csvfile:
+        with open('./{dir}/{fname}.csv'.format(dir = tar_dir, fname = Path(file).stem), 'w', newline = '') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(headerList)
             try:
@@ -241,60 +237,23 @@ def data_generate():
                 print(Path(file).stem)
                 continue
 
-def predict_all(test, gender, hand, years, level):
-    group_size = 27
-    
-    def binary(test, clf):
-        predicted = clf.predict_proba(test)
-        # 取出正類（index 0）的概率
-        predicted = [predicted[i][0] for i in range(len(predicted))]
-        
-        
-        num_groups = len(predicted) // group_size 
-        if sum(predicted[:group_size]) / group_size > 0.5:
-            y_pred = [max(predicted[i*group_size: (i+1)*group_size]) for i in range(num_groups)]
-        else:
-            y_pred = [min(predicted[i*group_size: (i+1)*group_size]) for i in range(num_groups)]
-        
-        y_pred  = [1 - x for x in y_pred]
-
-        return y_pred
-
-    def multi(test, clf, num_classes):
-        predicted = clf.predict_proba(test)
-        num_groups = len(predicted) // group_size
-        y_pred = []
-        for i in range(num_groups):
-            group_pred = predicted[i*group_size: (i+1)*group_size]
-            # 對每個類別計算該組內的總機率
-            class_sums = [sum([group_pred[k][j] for k in range(group_size)]) for j in range(num_classes)]
-            chosen_class = np.argmax(class_sums)
-            candidate_probs = [group_pred[k][chosen_class] for k in range(group_size)]
-            best_instance = np.argmax(candidate_probs)
-            y_pred.append(group_pred[best_instance])
-
-        return y_pred
-
-    gender_pred = binary(test, gender)
-    hands_pred = binary(test, hand)
-    years_pred = multi(test, years, 3)
-    level_pred = multi(test, level, 4)
-    
-    return gender_pred, hands_pred, years_pred, level_pred
-
 
 def main():
     # 若尚未產生特徵，請先執行 data_generate() 生成特徵 CSV 檔案
-    data_generate()
+    import os
+    os.makedirs('./tabular_data_train', exist_ok=True)
+    os.makedirs('./tabular_data_test', exist_ok=True)
+    data_generate(datapath='./39_Training_Dataset/train_data', tar_dir='tabular_data_train')
+    data_generate(datapath='./39_Test_Dataset/test_data', tar_dir='tabular_data_test')
     # exit(0)
     
     # 讀取訓練資訊，根據 player_id 將資料分成 80% 訓練、20% 測試
-    info = pd.read_csv('data/train/train_info.csv')
+    info = pd.read_csv('./39_Training_Dataset/train_info.csv')
     unique_players = info['player_id'].unique()
     train_players, test_players = train_test_split(unique_players, test_size=0.2, random_state=42)
     
     # 讀取特徵 CSV 檔（位於 "./tabular_data_train"）
-    datapath = 'data/tabular_data_train'
+    datapath = './tabular_data_train'
     datalist = list(Path(datapath).glob('**/*.csv'))
     target_mask = ['gender', 'hold racket handed', 'play years', 'level']
     
@@ -305,7 +264,6 @@ def main():
     y_test = pd.DataFrame(columns=target_mask)
     
     for file in datalist:
-        # print(file)
         unique_id = int(Path(file).stem)
         row = info[info['unique_id'] == unique_id]
         if row.empty:
@@ -330,7 +288,7 @@ def main():
     group_size = 27
 
     def model_binary(X_train, y_train, X_test, y_test):
-        clf = RandomForestClassifier(random_state=42, n_jobs=-1)
+        clf = RandomForestClassifier(random_state=42, n_jobs=8)
         clf.fit(X_train, y_train)
         
         predicted = clf.predict_proba(X_test)
@@ -346,8 +304,6 @@ def main():
         
         y_pred  = [1 - x for x in y_pred]
         y_test_agg = [y_test[i*group_size] for i in range(num_groups)]
-        # print(y_pred)
-        # print(y_test_agg)
         
         auc_score = roc_auc_score(y_test_agg, y_pred, average='micro')
         print(auc_score)
@@ -356,7 +312,7 @@ def main():
 
     # 定義多類別分類評分函數 (例如 play years、level)
     def model_multiary(X_train, y_train, X_test, y_test):
-        clf = RandomForestClassifier(random_state=42, n_jobs=-1)
+        clf = RandomForestClassifier(random_state=42, n_jobs=8)
         clf.fit(X_train, y_train)
         predicted = clf.predict_proba(X_test)
         num_groups = len(predicted) // group_size
@@ -372,8 +328,6 @@ def main():
             y_pred.append(group_pred[best_instance])
         
         y_test_agg = [y_test[i*group_size] for i in range(num_groups)]
-        # print(y_test_agg[0])
-        # print(y_pred[0])
         auc_score = roc_auc_score(y_test_agg, y_pred, average='micro', multi_class='ovr')
         print('Multiary AUC:', auc_score)
         
@@ -408,84 +362,6 @@ def main():
             "level": level_clf,
             "scaler": scaler,
         }, f)
-    
-    exit(0)
-    # datapath = 'data/tabular_data_test'
-    # datalist = list(Path(datapath).glob('**/*.csv'))
-    
-    # test = pd.DataFrame()
-    
-    # for file in datalist:
-    #     # print(file)
-    #     unique_id = int(Path(file).stem)
-    #     row = info[info['unique_id'] == unique_id]
-    #     if row.empty:
-    #         continue
-    #     # player_id = row['player_id'].iloc[0]
-    #     data = pd.read_csv(file)
-    #     test = pd.concat([x_train, data], ignore_index=True)
-        
-    # result = predict_all(test, gender_clf, hand_clf, years_clf, level_clf)
-    # print(result)
-    
-    # test_info = pd.read_csv('data/train/test_info.csv')
-
-    # 讀取 tabular_data_test
-    datapath = 'data/tabular_data_test'
-    datalist = list(Path(datapath).glob('**/*.csv'))
-
-    # 初始化預測結果
-    results = []
-
-    for file in datalist:
-        unique_id = int(Path(file).stem)
-        data = pd.read_csv(file)
-
-        # 預測前處理
-        X = scaler.transform(data)
-
-        # group_size 分組推論
-        gender_probs = gender_clf.predict_proba(X)
-        hold_probs = hand_clf.predict_proba(X)
-        years_probs = years_clf.predict_proba(X)
-        level_probs = level_clf.predict_proba(X)
-
-        def get_group_probs(prob_array, n_classes):
-            group_pred = prob_array[:group_size]
-            class_sums = [sum([group_pred[k][j] for k in range(group_size)]) for j in range(n_classes)]
-            class_avg = [round(x / sum(class_sums), 5) for x in class_sums]
-            return class_avg
-
-        # gender, hold 是 binary，只取 class 0 的機率平均
-        gender_prob_0 = np.mean([p[0] for p in gender_probs[:group_size]])
-        hold_prob_0 = np.mean([p[0] for p in hold_probs[:group_size]])
-
-        # years 有三類 (0,1,2)
-        years_group_prob = get_group_probs(years_probs, 3)
-
-        # level 有四類 (2,3,4,5)
-        level_group_prob = get_group_probs(level_probs, 4)
-
-        result_row = {
-            'unique_id': unique_id,
-            'gender': round(gender_prob_0, 5),
-            'hold racket handed': round(hold_prob_0, 5),
-            'play years_0': years_group_prob[0],
-            'play years_1': years_group_prob[1],
-            'play years_2': years_group_prob[2],
-            'level_2': level_group_prob[0],
-            'level_3': level_group_prob[1],
-            'level_4': level_group_prob[2],
-            'level_5': level_group_prob[3],
-        }
-
-        results.append(result_row)
-
-    # 輸出為 CSV
-    output_df = pd.DataFrame(results)
-    output_df = output_df.sort_values(by='unique_id')  # 排序保險
-    output_df.to_csv('test_predictions.csv', index=False)
-
 
 
 if __name__ == '__main__':
