@@ -17,11 +17,11 @@ level_clf = model['level']
 
 
 
-info_test = pd.read_csv('data/test/test_info.csv')
+info_test = pd.read_csv('./39_Test_Dataset/test_info.csv')
 test_unique_ids = set(info_test['unique_id']) # Use a set for faster lookup
 
-datapath_test = 'data/tabular_data_test'
-datalist_test = list(Path(datapath_test).glob('**/*.csv'))
+datapath_test = './tabular_data_test'
+datalist_test = list(Path(datapath_test).glob('*.csv'))
 
 results = []
 
@@ -103,7 +103,7 @@ results_df = results_df[output_columns]
 
 results_df['unique_id'] = results_df['unique_id'].astype(int)
 
-output_filename = 'submission.csv'
+output_filename = 'hand.csv'
 results_df.to_csv(output_filename, index=False, float_format='%.8f') # 使用較高精度儲存浮點數
 
 print(f"Results saved to {output_filename}")

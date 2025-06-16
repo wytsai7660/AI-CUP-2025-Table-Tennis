@@ -9,7 +9,7 @@ from tqdm import tqdm
 # ─── 在這裡直接定義變數 ────────────────────────────────────────────
 TEST_DIR    = "39_Test_Dataset/test_data"       # 測試資料夾路徑
 WEIGHT_PATH = "weight/weight_05112159.pth"      # 訓練好權重的 .pth 檔
-OUTPUT_CSV  = "test_results.csv"                # 輸出 CSV 檔名
+OUTPUT_CSV  = "level.csv"                # 輸出 CSV 檔名
 # ───────────────────────────────────────────────────────────────────
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 def normalize(x: torch.Tensor) -> torch.Tensor:
