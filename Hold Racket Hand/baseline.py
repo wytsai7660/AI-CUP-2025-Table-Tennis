@@ -1,3 +1,7 @@
+# 官方 Baseline 程式碼
+# 參考資料：
+# https://drive.google.com/file/d/1T-fqFgXnlEOaRV_SFJ3X9KxiBrDY8VFK/view
+
 from pathlib import Path
 import numpy as np
 import pandas as pd
